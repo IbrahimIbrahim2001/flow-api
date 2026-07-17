@@ -3,6 +3,7 @@ packages:
 
 allowBuilds:
   bcrypt: false
+  esbuild: false
 
 onlyBuiltDependencies:
   - esbuild
