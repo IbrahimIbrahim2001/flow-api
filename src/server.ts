@@ -1,8 +1,6 @@
 import 'dotenv/config';
 import cors from 'cors';
 import express from 'express';
-import { db } from './db/drizzle.js';
-import { todo } from './db/schema.js';
 import { errorMiddleware } from './middleware/error.middleware.js';
 
 const app = express();
@@ -19,12 +17,6 @@ app.use(
 
 app.get('/', (_req, res) => {
   res.json({ name: 'flow-api', status: 'ok' });
-});
-
-app.get('/todos', async (_req, res) => {
-  const todos_ = await db.select().from(todo);
-  const todos = await db.query.todo.findMany();
-  res.json({ todos_: todos_, todos: todos });
 });
 
 // global error handler
