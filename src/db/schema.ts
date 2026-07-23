@@ -125,8 +125,8 @@ export const relationalSchema = defineRelations(
     },
     tasks: {
       assignedTo: r.one.users({
-        from: r.users.id,
-        to: r.tasks.user_id,
+        from: r.tasks.user_id,
+        to: r.users.id,
       }),
       tag: r.one.tags({
         from: r.tasks.tag_id,
