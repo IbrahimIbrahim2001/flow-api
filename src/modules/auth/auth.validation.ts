@@ -31,3 +31,7 @@ export const loginSchema = z.object({
     .string()
     .min(8, { message: 'Password must be at least 8 characters' }),
 });
+
+export const refreshSchema = z.object({
+  refreshToken: z.string().min(1),
+});

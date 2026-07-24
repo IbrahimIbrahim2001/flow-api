@@ -16,6 +16,20 @@ class AuthController {
       res.status(200).json(result);
     },
   );
+
+  public refresh: RequestHandler = asyncHandler(
+    async (req: Request, res: Response) => {
+      const result = await authService.refresh(req.body);
+      res.status(200).json(result);
+    },
+  );
+
+  public logout: RequestHandler = asyncHandler(
+    async (req: Request, res: Response) => {
+      await authService.logout(req.body);
+      res.status(200).json({ message: 'Logged out' });
+    },
+  );
 }
 
 export default new AuthController();
