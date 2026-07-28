@@ -3,6 +3,13 @@ import asyncHandler from 'express-async-handler';
 import authService from './auth.service.ts';
 
 class AuthController {
+  public checkEmail: RequestHandler = asyncHandler(
+    async (req: Request, res: Response) => {
+      const result = await authService.checkEmailExists(req.body);
+      res.status(200).json(result);
+    },
+  );
+
   public register: RequestHandler = asyncHandler(
     async (req: Request, res: Response) => {
       const result = await authService.register(req.body);

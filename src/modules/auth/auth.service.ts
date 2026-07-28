@@ -3,7 +3,12 @@ import { and, eq, gte } from 'drizzle-orm';
 import jwt from 'jsonwebtoken';
 import { db } from '../../db/drizzle.ts';
 import { refreshTokens, users } from '../../db/schema.ts';
-import type { LoginDto, RefreshDto, RegisterDto } from './auth.dto.ts';
+import type {
+  CheckEmailExistsDto,
+  LoginDto,
+  RefreshDto,
+  RegisterDto,
+} from './auth.dto.ts';
 import { comparePassword, hashPassword } from './auth.utils.ts';
 
 const JWT_SECRET = process.env.JWT_SECRET as string;
@@ -83,11 +88,19 @@ class AuthService {
     return { accessToken, refreshToken: newRefreshToken };
   }
 
+  async checkEmailExists({ email }: CheckEmailExistsDto) {
+    const existingUser = await db.query.users.findFirst({
+      where: { email },
+    });
+    return { exists: !!existingUser };
+  }
+
   async logout({ refreshToken }: RefreshDto) {
     const hash = this.hashToken(refreshToken);
     await db.delete(refreshTokens).where(eq(refreshTokens.token_hash, hash));
   }
 
+  // TODO: add some comment here
   private generateAccessToken(userId: string) {
     return jwt.sign({ sub: userId }, JWT_SECRET as string, {
       expiresIn: '15m',

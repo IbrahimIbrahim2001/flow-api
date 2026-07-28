@@ -1,6 +1,10 @@
 import validator from 'validator';
 import z from 'zod';
 
+export const checkEmailSchema = z.object({
+  email: z.email({ message: 'Invalid email address' }),
+});
+
 export const registerSchema = z.object({
   name: z.string().min(3, { message: 'Name must be at least 3 characters' }),
   email: z

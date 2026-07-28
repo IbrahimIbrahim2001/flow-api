@@ -23,6 +23,11 @@ app.use(
 
 app.use(requestLogger);
 
+/**
+ * @method GET
+ * @route /health
+ * @description Health check endpoint to verify the server and database are connected
+ */
 app.get('/health', async (_req, res) => {
   try {
     await db.execute(sql`SELECT 1`);
