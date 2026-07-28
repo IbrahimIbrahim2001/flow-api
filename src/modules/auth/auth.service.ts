@@ -3,17 +3,12 @@ import { and, eq, gte } from 'drizzle-orm';
 import jwt from 'jsonwebtoken';
 import { db } from '../../db/drizzle.ts';
 import { refreshTokens, users } from '../../db/schema.ts';
-import type {
-  CheckEmailExistsDto,
-  LoginDto,
-  RefreshDto,
-  RegisterDto,
-} from './auth.dto.ts';
+import type { LoginDto, RefreshDto, RegisterDto } from './auth.dto.ts';
 import { comparePassword, hashPassword } from './auth.utils.ts';
 
 const JWT_SECRET = process.env.JWT_SECRET as string;
 
-const REFRESH_TOKEN_EXPIRY_DAYS = 30;
+const REFRESH_TOKEN_EXPIRY_DAYS = 7;
 
 class AuthService {
   async register({ name, email, password }: RegisterDto) {
@@ -21,7 +16,10 @@ class AuthService {
       where: { email },
     });
     if (existingUser) {
-      throw new Error('User already exists');
+      return {
+        success: false,
+        message: 'Email already taken',
+      };
     }
 
     const passwordHash = await hashPassword(password);
@@ -37,7 +35,15 @@ class AuthService {
       .returning();
 
     const { password_hash, ...userData } = newUser;
-    return userData;
+    return {
+      success: true,
+      message: 'User registered successfully',
+      data: {
+        user: userData,
+        accessToken: this.generateAccessToken(userData.id),
+        refreshToken: await this.createRefreshToken(userData.id),
+      },
+    };
   }
 
   async login({ email, password }: LoginDto) {
@@ -46,20 +52,31 @@ class AuthService {
     });
 
     if (!user) {
-      throw new Error('Invalid Credentials');
+      return {
+        success: false,
+        message: 'Invalid Credentials',
+      };
     }
 
     const isPasswordMatch = await comparePassword(password, user.password_hash);
 
     if (!isPasswordMatch) {
-      throw new Error('Invalid Credentials');
+      return {
+        success: false,
+        message: 'Invalid Credentials',
+      };
     }
 
-    const accessToken = this.generateAccessToken(user.id);
-    const refreshToken = await this.createRefreshToken(user.id);
-
     const { password_hash, ...userData } = user;
-    return { user: userData, accessToken, refreshToken };
+    return {
+      success: true,
+      message: 'Login successful',
+      data: {
+        user: userData,
+        accessToken: this.generateAccessToken(userData.id),
+        refreshToken: await this.createRefreshToken(userData.id),
+      },
+    };
   }
 
   async refresh({ refreshToken }: RefreshDto) {
@@ -77,7 +94,10 @@ class AuthService {
       .limit(1);
 
     if (!stored) {
-      throw new Error('Invalid or expired refresh token');
+      return {
+        success: false,
+        message: 'Invalid or expired refresh token',
+      };
     }
 
     await db.delete(refreshTokens).where(eq(refreshTokens.id, stored.id));
@@ -85,14 +105,11 @@ class AuthService {
     const accessToken = this.generateAccessToken(stored.user_id);
     const newRefreshToken = await this.createRefreshToken(stored.user_id);
 
-    return { accessToken, refreshToken: newRefreshToken };
-  }
-
-  async checkEmailExists({ email }: CheckEmailExistsDto) {
-    const existingUser = await db.query.users.findFirst({
-      where: { email },
-    });
-    return { exists: !!existingUser };
+    return {
+      success: true,
+      message: 'Token refreshed',
+      data: { accessToken, refreshToken: newRefreshToken },
+    };
   }
 
   async logout({ refreshToken }: RefreshDto) {
@@ -100,7 +117,6 @@ class AuthService {
     await db.delete(refreshTokens).where(eq(refreshTokens.token_hash, hash));
   }
 
-  // TODO: add some comment here
   private generateAccessToken(userId: string) {
     return jwt.sign({ sub: userId }, JWT_SECRET as string, {
       expiresIn: '15m',

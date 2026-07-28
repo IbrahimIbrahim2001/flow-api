@@ -2,24 +2,12 @@ import { Router } from 'express';
 import { validate } from '../../middleware/validation.ts';
 import authController from './auth.controller.ts';
 import {
-  checkEmailSchema,
   loginSchema,
   refreshSchema,
   registerSchema,
 } from './auth.validation.ts';
 
 const router: Router = Router();
-
-/**
- * @method POST
- * @route /auth/check-email
- * @description Check if a user with the given email already exists
- */
-router.post(
-  '/check-email',
-  validate(checkEmailSchema),
-  authController.checkEmail,
-);
 
 /**
  * @method POST

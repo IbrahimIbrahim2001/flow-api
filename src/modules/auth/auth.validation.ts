@@ -1,10 +1,6 @@
 import validator from 'validator';
 import z from 'zod';
 
-export const checkEmailSchema = z.object({
-  email: z.email({ message: 'Invalid email address' }),
-});
-
 export const registerSchema = z.object({
   name: z.string().min(3, { message: 'Name must be at least 3 characters' }),
   email: z
@@ -24,7 +20,7 @@ export const registerSchema = z.object({
         }),
       {
         message:
-          'Password must contain at least one uppercase letter, one lowercase letter, and one number',
+          'Password must contain at least one uppercase letter, one lowercase letter, one number, and one symbol',
       },
     ),
 });

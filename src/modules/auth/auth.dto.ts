@@ -12,7 +12,3 @@ export interface LoginDto {
 export interface RefreshDto {
   refreshToken: string;
 }
-
-export interface CheckEmailExistsDto {
-  email: string;
-}
