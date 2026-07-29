@@ -16,7 +16,7 @@ export const registerSchema = z.object({
           minLowercase: 1,
           minUppercase: 1,
           minNumbers: 1,
-          minSymbols: 0,
+          minSymbols: 1,
         }),
       {
         message:

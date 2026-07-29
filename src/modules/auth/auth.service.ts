@@ -4,9 +4,17 @@ import jwt from 'jsonwebtoken';
 import { db } from '../../db/drizzle.ts';
 import { refreshTokens, users } from '../../db/schema.ts';
 import type { LoginDto, RefreshDto, RegisterDto } from './auth.dto.ts';
-import { comparePassword, hashPassword } from './auth.utils.ts';
+import {
+  comparePassword,
+  hashPassword,
+  isValidPassword,
+} from './auth.utils.ts';
 
 const JWT_SECRET = process.env.JWT_SECRET as string;
+
+const USER_NOT_FOUND = 'user_not_found';
+const WRONG_PASSWORD = 'wrong_password';
+const INVALID_PASSWORD = 'invalid_password';
 
 const REFRESH_TOKEN_EXPIRY_DAYS = 7;
 
@@ -47,6 +55,16 @@ class AuthService {
   }
 
   async login({ email, password }: LoginDto) {
+    // validate the password
+    const isPasswordValid = isValidPassword(password);
+    if (!isPasswordValid) {
+      return {
+        success: false,
+        message: 'Password does not meet requirements',
+        error: INVALID_PASSWORD,
+      };
+    }
+
     const user = await db.query.users.findFirst({
       where: { email },
     });
@@ -55,6 +73,7 @@ class AuthService {
       return {
         success: false,
         message: 'Invalid Credentials',
+        error: USER_NOT_FOUND,
       };
     }
 
@@ -64,6 +83,7 @@ class AuthService {
       return {
         success: false,
         message: 'Invalid Credentials',
+        error: WRONG_PASSWORD,
       };
     }
 
