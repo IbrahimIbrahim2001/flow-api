@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { and, eq, gte } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import jwt from 'jsonwebtoken';
 import { db } from '../../db/drizzle.ts';
 import { refreshTokens, users } from '../../db/schema.ts';
@@ -105,12 +105,7 @@ class AuthService {
     const [stored] = await db
       .select()
       .from(refreshTokens)
-      .where(
-        and(
-          eq(refreshTokens.token_hash, hash),
-          gte(refreshTokens.expires_at, new Date()),
-        ),
-      )
+      .where(eq(refreshTokens.token_hash, hash))
       .limit(1);
 
     if (!stored) {
@@ -120,7 +115,57 @@ class AuthService {
       };
     }
 
-    await db.delete(refreshTokens).where(eq(refreshTokens.id, stored.id));
+    // Reuse detection: a revoked token presented again signals theft,
+    // so revoke every token belonging to that user.
+    if (stored.revoked) {
+      await db
+        .update(refreshTokens)
+        .set({ revoked: true })
+        .where(eq(refreshTokens.user_id, stored.user_id));
+
+      return {
+        success: false,
+        message: 'Invalid or expired refresh token',
+      };
+    }
+
+    // Expired token -> revoke and reject
+    if (stored.expires_at < new Date()) {
+      await db
+        .update(refreshTokens)
+        .set({ revoked: true })
+        .where(eq(refreshTokens.id, stored.id));
+
+      return {
+        success: false,
+        message: 'Invalid or expired refresh token',
+      };
+    }
+
+    // Ensure the user still exists before issuing new tokens
+    const [user] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.id, stored.user_id))
+      .limit(1);
+
+    if (!user) {
+      await db
+        .update(refreshTokens)
+        .set({ revoked: true })
+        .where(eq(refreshTokens.user_id, stored.user_id));
+
+      return {
+        success: false,
+        message: 'Invalid or expired refresh token',
+      };
+    }
+
+    // Rotate: revoke the old token and issue a fresh pair
+    await db
+      .update(refreshTokens)
+      .set({ revoked: true })
+      .where(eq(refreshTokens.id, stored.id));
 
     const accessToken = this.generateAccessToken(stored.user_id);
     const newRefreshToken = await this.createRefreshToken(stored.user_id);
@@ -134,7 +179,19 @@ class AuthService {
 
   async logout({ refreshToken }: RefreshDto) {
     const hash = this.hashToken(refreshToken);
-    await db.delete(refreshTokens).where(eq(refreshTokens.token_hash, hash));
+
+    const [stored] = await db
+      .select()
+      .from(refreshTokens)
+      .where(eq(refreshTokens.token_hash, hash))
+      .limit(1);
+
+    if (stored && !stored.revoked) {
+      await db
+        .update(refreshTokens)
+        .set({ revoked: true })
+        .where(eq(refreshTokens.id, stored.id));
+    }
   }
 
   private generateAccessToken(userId: string) {
