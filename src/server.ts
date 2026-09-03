@@ -8,6 +8,7 @@ import { logger } from './lib/logger.ts';
 import { errorMiddleware } from './middleware/error.middleware.ts';
 import { requestLogger } from './middleware/request-logger.ts';
 import { authRouter } from './modules/auth/auth.routes.ts';
+import { tasksRouter } from './modules/tasks/tasks.routes.ts';
 
 const app: Express = express();
 const PORT = process.env.PORT || 3000;
@@ -39,6 +40,7 @@ app.get('/health', async (_req, res) => {
 
 // routes
 app.use('/auth', authRouter);
+app.use('/tasks', tasksRouter);
 
 // global error handler
 app.use(errorMiddleware);
