@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { authenticate } from '../../middleware/auth.middleware.ts';
 import { validate } from '../../middleware/validation.ts';
 import tasksController from './tasks.controller.ts';
-import { createTaskSchema } from './tasks.validation.ts';
+import { createTaskSchema, getTasksQuerySchema } from './tasks.validation.ts';
 
 const router: Router = Router();
 
@@ -23,7 +23,12 @@ router.post(
  * @route /tasks
  * @description Get all tasks for the authenticated user
  */
-router.get('/', authenticate, tasksController.getAll);
+router.get(
+  '/',
+  authenticate,
+  validate(getTasksQuerySchema, 'query'),
+  tasksController.getAll,
+);
 
 /**
  * @method GET

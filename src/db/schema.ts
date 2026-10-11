@@ -64,6 +64,7 @@ export const tasks = pgTable(
       ),
     },
     index('title_idx').on(table.title),
+    index('user_idx').on(table.user_id),
     index('tag_idx').on(table.tag_id),
     index('project_idx').on(table.project_id),
   ],

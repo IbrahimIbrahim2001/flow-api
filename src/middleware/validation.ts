@@ -1,16 +1,16 @@
 import type { NextFunction, Request, Response } from 'express';
 import type { ZodType } from 'zod';
 
-export function validate(schema: ZodType) {
+export function validate(schema: ZodType, source: 'body' | 'query' = 'body') {
   return (req: Request, _res: Response, next: NextFunction) => {
-    const result = schema.safeParse(req.body);
+    const result = schema.safeParse(req[source]);
     if (!result.success) {
       const error = Object.assign(new Error(result.error.issues[0].message), {
         statusCode: 400,
       });
       throw error;
     }
-    req.body = result.data;
+    req[source] = result.data;
     next();
   };
 }

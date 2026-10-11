@@ -1,5 +1,6 @@
 import type { Request, RequestHandler, Response } from 'express';
 import asyncHandler from 'express-async-handler';
+import type { GetTasksQueryDto } from './tasks.dto.ts';
 import tasksService from './tasks.service.ts';
 
 class TasksController {
@@ -12,7 +13,10 @@ class TasksController {
 
   public getAll: RequestHandler = asyncHandler(
     async (req: Request, res: Response) => {
-      const result = await tasksService.getAll(req.userId as string);
+      const result = await tasksService.getAll(
+        req.userId as string,
+        req.query as unknown as GetTasksQueryDto,
+      );
       res.status(200).json(result);
     },
   );

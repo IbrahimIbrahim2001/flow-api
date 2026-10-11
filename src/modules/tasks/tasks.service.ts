@@ -1,8 +1,13 @@
 import { randomUUID } from 'node:crypto';
-import { and, eq, max } from 'drizzle-orm';
+import { and, count, eq, max } from 'drizzle-orm';
 import { db } from '../../db/drizzle.ts';
 import { tasks } from '../../db/schema.ts';
-import type { CreateTaskDto } from './tasks.dto.ts';
+import type { CreateTaskDto, GetTasksQueryDto } from './tasks.dto.ts';
+import {
+  buildTasksOrderBy,
+  buildTasksWhereClause,
+  normalizeTasksPagination,
+} from './tasks.utils.ts';
 
 class TasksService {
   async create(input: CreateTaskDto, userId: string) {
@@ -37,16 +42,43 @@ class TasksService {
     };
   }
 
-  async getAll(userId: string) {
+  async getAll(userId: string, query: GetTasksQueryDto = {}) {
+    const { page, limit, offset } = normalizeTasksPagination(
+      query.page ?? 1,
+      query.limit ?? 20,
+    );
+
+    const where = buildTasksWhereClause(userId, query);
+    const orderBy = buildTasksOrderBy(
+      query.sort_by ?? 'position',
+      query.order ?? 'asc',
+    );
+
+    const [countRow] = await db
+      .select({ total: count() })
+      .from(tasks)
+      .where(where);
+
+    const total = countRow?.total ?? 0;
+
     const tasksList = await db
       .select()
       .from(tasks)
-      .where(eq(tasks.user_id, userId));
+      .where(where)
+      .orderBy(orderBy)
+      .limit(limit)
+      .offset(offset);
 
     return {
       success: true,
       message: 'Tasks fetched successfully',
       data: tasksList,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
     };
   }
 
